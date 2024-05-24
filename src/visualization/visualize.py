@@ -119,6 +119,9 @@ def plot_elbow_curve(data_type: str, exchange: str, combined_scores, elbow_index
 
 def plot_tree_learning_curves(exchange: str, data_type: str, depths: int, train_scores: list, test_scores: list, folder: str):
     """Plot the learning curves for the training and test sets."""
+    path = os.path.join(FIGURE_PATH, folder)
+    if not os.path.exists(path):
+        os.makedirs(path)
 
     plt.figure(figsize=(10, 6))
     plt.plot(depths, train_scores, label='Train Score', marker='o')
@@ -128,5 +131,5 @@ def plot_tree_learning_curves(exchange: str, data_type: str, depths: int, train_
     plt.title(f'Learning Curves for {exchange} {data_type}')
     plt.legend()
     plt.grid(True)
-    plt.savefig(os.path.join(FIGURE_PATH, folder, f'{exchange}_{data_type}_learning_curves.png'))
+    plt.savefig(os.path.join(path, f'{exchange}_{data_type}_learning_curves.png'))
     plt.show()
