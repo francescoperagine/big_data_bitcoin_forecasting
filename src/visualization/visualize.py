@@ -5,7 +5,7 @@ import pandas as pd
 
 from src.utils.constants import *
 
-def plot_correlation_matrix(exchange: str, data_type: str, correlation_matrix: pd.DataFrame):
+def plot_correlation_matrix(data_type: str, exchange: str, correlation_matrix: pd.DataFrame):
     plt.figure(figsize=(12, 10))
     sns.heatmap(correlation_matrix, annot=False, cmap='coolwarm')
     plt.title(f'{exchange}-{data_type} correlation matrix of Crypto Market Features')
@@ -117,7 +117,7 @@ def plot_elbow_curve(data_type: str, exchange: str, combined_scores, elbow_index
     plt.savefig(os.path.join(FIGURE_PATH, f'{exchange}_{data_type}_combined_scores_elbow_plot.png'))
     plt.show()
 
-def plot_tree_learning_curves(exchange: str, data_type: str, depths: int, train_scores: list, test_scores: list):
+def plot_tree_learning_curves(exchange: str, data_type: str, depths: int, train_scores: list, test_scores: list, folder: str):
     """Plot the learning curves for the training and test sets."""
 
     plt.figure(figsize=(10, 6))
@@ -128,5 +128,5 @@ def plot_tree_learning_curves(exchange: str, data_type: str, depths: int, train_
     plt.title(f'Learning Curves for {exchange} {data_type}')
     plt.legend()
     plt.grid(True)
-    plt.savefig(os.path.join(FIGURE_PATH, f'{exchange}_{data_type}_learning_curves.png'))
+    plt.savefig(os.path.join(FIGURE_PATH, folder, f'{exchange}_{data_type}_learning_curves.png'))
     plt.show()
