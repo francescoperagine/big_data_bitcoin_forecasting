@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=65.5.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "btcf"
+version = "0.1.0"
+description = "Big Data case study for CS - AI MsC @ UniBA"
+authors = [
+    { name = "Francesco Peragine" }
+]
+license = { text = "MIT" }
+
+dependencies = [
+    "click==8.1.7",
+    "matplotlib==3.8.4",
+    "numpy==1.26.4",
+    "pandas==2.2.2",
+    "python-dotenv==1.0.1",
+    "scikit-learn==1.4.2",
+    "seaborn==0.13.2",
+    "technical_analysis==0.0.4",
+    "auto_mix_prep==0.2.0",
+    "dask==2024.5.1",
+    "dask[distributed]",
+    "dask[distributed-jupyter]",
+    "pyarrow",
+    "pipreqs"
+]
+
+[tool.setuptools]
+packages = ["find:"]
+
+[tool.setuptools.packages.find]
+where = ["."]
