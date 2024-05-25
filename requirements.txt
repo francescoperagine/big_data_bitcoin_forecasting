@@ -7,3 +7,8 @@ scikit_learn==1.4.2
 seaborn==0.13.2
 setuptools==65.5.0
 technical_analysis==0.0.4
+auto_mix_prep==0.2.0
+dask==2024.5.1
+numpy==1.26.4
+pandas==2.2.2
+scikit_learn==1.4.2
