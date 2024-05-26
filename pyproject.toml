@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "bctf"
 version = "0.1.0"
 description = "Big Data case study for CS - AI MsC @ UniBA"
+requires-python = ">= 3.9"
 authors = [{ name = "Francesco Peragine" }]
 license = { text = "MIT" }
 dependencies = [
@@ -19,15 +20,13 @@ dependencies = [
     "technical_analysis==0.0.4",
     "auto_mix_prep==0.2.0",
     "dask==2024.5.1",
-    "dask-expr=1.1.1",
-    "dask[distributed]=2024.5.1",
+    "dask-expr==1.1.1",
+    "dask[distributed]==2024.5.1",
     "dask[distributed-jupyter]",
-    "pyarrow=16.1.0",
-    "pipreqs=0.5.0"
+    "pyarrow==16.1.0",
+    "pipreqs==0.5.0"
 ]
 
-[tool.setuptools]
-package-dir = {"" = "src"}
+[tool.setuptools.packages]
+find = {}
 
-[tool.setuptools.packages.find]
-where = ["src"]
