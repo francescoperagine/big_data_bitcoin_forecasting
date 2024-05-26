@@ -4,6 +4,7 @@ import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.feature_selection import mutual_info_classif
 import numpy as np
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
 def get_features(df: pd.DataFrame) -> list:
     """Return a list of features in the DataFrame."""	
@@ -113,3 +114,10 @@ def compare_features_scores(pca_loadings: pd.DataFrame, info_scores: pd.DataFram
 
     combined_scores['Combined_Scores'] = pd.DataFrame((combined_scores['Loadings_Norm'] + combined_scores['Information_Gain']) / 2, columns=['Combined_Scores'])
     return combined_scores
+
+def get_evaluation(y_test, y_pred):
+    return {
+        'accuracy': accuracy_score(y_test, y_pred),
+        'classification_report': pd.DataFrame(classification_report(y_test, y_pred, target_names=['positive', 'neutral', 'negative'], digits=2, output_dict=True)).transpose(),
+        'confusion_matrix': pd.DataFrame(confusion_matrix(y_test, y_pred), index=['true:positive', 'true:neutral', 'true:negative'], columns=['pred:positive', 'pred:neutral', 'pred:negative'])
+    }
