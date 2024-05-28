@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import learning_curve
+from sklearn.metrics import confusion_matrix
 
 from src.utils.constants import *
 
@@ -132,4 +134,32 @@ def plot_tree_learning_curves(exchange: str, data_type: str, depths: int, train_
     plt.legend()
     plt.grid(True)
     plt.savefig(os.path.join(path, f'{exchange}_{data_type}_learning_curves.png'))
+    plt.show()
+
+def plot_learning_curve(estimator, X, y, train_sizes=np.linspace(0.1, 1.0, 5), cv=3, n_jobs=-1):
+    train_sizes, train_scores, test_scores = learning_curve(estimator, X, y, 
+                                                            train_sizes=train_sizes, 
+                                                            cv=cv, 
+                                                            scoring='accuracy', 
+                                                            n_jobs=n_jobs, 
+                                                            random_state=42)
+    train_scores_mean = np.mean(train_scores, axis=1)
+    test_scores_mean = np.mean(test_scores, axis=1)
+
+    plt.figure(figsize=(10, 7))
+    plt.plot(train_sizes, train_scores_mean, label='Training score')
+    plt.plot(train_sizes, test_scores_mean, label='Cross-validation score')
+    plt.xlabel('Training Set Size')
+    plt.ylabel('Accuracy Score')
+    plt.title('Learning Curve')
+    plt.legend()
+    plt.show()
+
+def plot_confusion_matrix(y_test, y_pred, labels):
+    cm = confusion_matrix(y_test, y_pred, labels=labels)
+    plt.figure(figsize=(10, 7))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=labels, yticklabels=labels)
+    plt.ylabel('True Labels')
+    plt.xlabel('Predicted Labels')
+    plt.title('Confusion Matrix')
     plt.show()

@@ -116,8 +116,7 @@ def compare_features_scores(pca_loadings: pd.DataFrame, info_scores: pd.DataFram
     return combined_scores
 
 def get_evaluation(y_test, y_pred):
-    return {
-        'accuracy': accuracy_score(y_test, y_pred),
-        'classification_report': pd.DataFrame(classification_report(y_test, y_pred, target_names=['positive', 'neutral', 'negative'], digits=2, output_dict=True)).transpose(),
-        'confusion_matrix': pd.DataFrame(confusion_matrix(y_test, y_pred), index=['true:positive', 'true:neutral', 'true:negative'], columns=['pred:positive', 'pred:neutral', 'pred:negative'])
-    }
+    accuracy = accuracy_score(y_test, y_pred)
+    classification_report = pd.DataFrame(classification_report(y_test, y_pred, target_names=['positive', 'neutral', 'negative'], digits=2, output_dict=True)).transpose()
+    confusion_matrix = pd.DataFrame(confusion_matrix(y_test, y_pred), index=['true:positive', 'true:neutral', 'true:negative'], columns=['pred:positive', 'pred:neutral', 'pred:negative'])
+    return accuracy, classification_report, confusion_matrix
