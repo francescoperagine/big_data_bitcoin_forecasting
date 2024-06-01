@@ -136,7 +136,10 @@ def plot_tree_learning_curves(exchange: str, data_type: str, depths: int, train_
     plt.savefig(os.path.join(path, f'{exchange}_{data_type}_learning_curves.png'))
     plt.show()
 
-def plot_learning_curve(estimator, X, y, train_sizes=np.linspace(0.1, 1.0, 5), cv=3, n_jobs=-1):
+def plot_learning_curve(exchange: str, data_type: str, folder: str, estimator, X, y, train_sizes=np.linspace(0.1, 1.0, 5), cv=3, n_jobs=-1):
+    path = os.path.join(FIGURE_PATH, folder)
+    if not os.path.exists(path):
+        os.makedirs(path)
     train_sizes, train_scores, test_scores = learning_curve(estimator, X, y, 
                                                             train_sizes=train_sizes, 
                                                             cv=cv, 
@@ -151,15 +154,20 @@ def plot_learning_curve(estimator, X, y, train_sizes=np.linspace(0.1, 1.0, 5), c
     plt.plot(train_sizes, test_scores_mean, label='Cross-validation score')
     plt.xlabel('Training Set Size')
     plt.ylabel('Accuracy Score')
-    plt.title('Learning Curve')
+    plt.title(f'{exchange}-{data_type} Learning Curve')
     plt.legend()
+    plt.savefig(os.path.join(path, f'{exchange}_{data_type}_learning_curves.png'))
     plt.show()
 
-def plot_confusion_matrix(y_test, y_pred, labels):
-    cm = confusion_matrix(y_test, y_pred, labels=labels)
-    plt.figure(figsize=(10, 7))
+def plot_confusion_matrix(exchange: str, data_type: str, folder: str, cm, labels):
+    path = os.path.join(FIGURE_PATH, folder)
+    if not os.path.exists(path):
+        os.makedirs(path)
+    # cm = confusion_matrix(y_test, y_pred, labels=labels)
+    plt.figure(figsize=(8, 6))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=labels, yticklabels=labels)
     plt.ylabel('True Labels')
     plt.xlabel('Predicted Labels')
     plt.title('Confusion Matrix')
+    plt.savefig(os.path.join(path, f'{exchange}_{data_type}_confusion_matrix.png'))
     plt.show()
