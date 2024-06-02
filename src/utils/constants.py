@@ -3,13 +3,15 @@ import os
 # Constants
 
 CANDLES = 'candles'
-ORDERBOOKS = 'orderbooks'
+ORDERBOOK = 'orderbook'
 
 # Exchanges
 
 BINANCE = 'BINANCE'
 HUOBI = 'HUOBI'
 OKX = 'OKX'
+
+LAGS = [1, 2, 3, 4]
 
 EXCHANGES = [BINANCE, HUOBI, OKX]
 

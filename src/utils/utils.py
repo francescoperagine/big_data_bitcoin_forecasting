@@ -43,24 +43,8 @@ def standard_scale(df: pd.DataFrame) -> pd.DataFrame:
     scaler = StandardScaler()
     return pd.DataFrame(scaler.fit_transform(df), columns=df.columns, index=df.index)
 
-def perform_pca(df: pd.DataFrame, variance_threshold: float) -> tuple[PCA, np.array, np.array]:
-    """Perform PCA and return the PCA object."""
-
-    # Perform PCA
-    pca = PCA()
-    pca = pca.fit(df)
-    explained_variance = pca.explained_variance_ratio_
-    cumulative_variance = explained_variance.cumsum()
-
-    # Get the number of components that explain the variance threshold
-    num_components = np.where(cumulative_variance >= variance_threshold)[0][0] + 1
-    pca_reduced = PCA(n_components=num_components).fit(df)
-    
-    return pca_reduced, explained_variance[:num_components], cumulative_variance[:num_components]
-
-def compute_loadings(pca: PCA, df: pd.DataFrame) -> pd.DataFrame:
-    """Compute the PCA loadings and return them as a DataFrame."""
-    return pd.DataFrame(pca.components_.T, columns=[f'PC_{i+1}' for i in range(pca.n_components_)], index=df.columns)
+def merge_datasets(df1, df2, on='origin_time'):
+    return pd.merge(df1, df2, on=on, how='inner')
 
 def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     """Add technical indicators to the DataFrame."""	
@@ -77,23 +61,6 @@ def add_orderbook_value_feature(df, orders=20):
         new_df[f'bid_{i}_value'] = new_df[f'bid_{i}_price'] * new_df[f'bid_{i}_size']
         new_df[f'ask_{i}_value'] = new_df[f'ask_{i}_price'] * new_df[f'ask_{i}_size']
     return new_df
-
-def get_information_gain(X: pd.DataFrame, y: pd.DataFrame) -> pd.DataFrame:
-    """Compute the information gain for each feature and return it as a DataFrame."""	
-    ig_scores = mutual_info_classif(X, y)
-    return pd.DataFrame(ig_scores, index=X.columns, columns=[f'Information_Gain'])
-
-def find_elbow_point(combined_scores: pd.DataFrame) -> int:
-    """Find the elbow point in the scores DataFrame and return the index."""	
-
-    # Calculate the angle between points (naive elbow detection)
-    sorted_scores = combined_scores.iloc[:, 0].sort_values(ascending=False).values
-    if len(sorted_scores) > 2:  # Ensure there are enough points to calculate second derivative
-        angles = np.arctan(np.diff(sorted_scores, n=2))
-        if len(angles) > 0:
-            elbow = np.argmin(angles) + 1  # +1 as diff reduces the original index by 1
-            return elbow
-    return 0
 
 def compare_features_scores(pca_loadings: pd.DataFrame, info_scores: pd.DataFrame):
     # Normalize PCA loadings and MI scores
@@ -114,10 +81,3 @@ def compare_features_scores(pca_loadings: pd.DataFrame, info_scores: pd.DataFram
 
     combined_scores['Combined_Scores'] = pd.DataFrame((combined_scores['Loadings_Norm'] + combined_scores['Information_Gain']) / 2, columns=['Combined_Scores'])
     return combined_scores
-
-def get_evaluation(y_test, y_pred):
-    evaluation = {}
-    evaluation['accuracy'] = accuracy_score(y_test, y_pred)
-    evaluation['classification_report'] = pd.DataFrame(classification_report(y_test, y_pred, target_names=['positive', 'neutral', 'negative'], digits=2, output_dict=True)).transpose()
-    evaluation['confusion_matrix'] = pd.DataFrame(confusion_matrix(y_test, y_pred), index=['true:positive', 'true:neutral', 'true:negative'], columns=['pred:positive', 'pred:neutral', 'pred:negative'])
-    return evaluation

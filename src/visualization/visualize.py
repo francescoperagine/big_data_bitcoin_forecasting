@@ -14,10 +14,10 @@ def plot_correlation_matrix(data_type: str, exchange: str, correlation_matrix: p
     plt.savefig(os.path.join(FIGURE_PATH, f'{exchange}_{data_type}_correlation_matrix.png'))
     plt.show()
 
-def plot_pca_variance(data_type: str, exchange: str, explained_variance: np.ndarray, cumulative_variance: np.ndarray):
+def plot_feature_importance(data_type: str, exchange: str, explained_variance: np.ndarray, cumulative_variance: np.ndarray):
     components = np.arange(1, len(explained_variance) + 1)
 
-    if data_type == ORDERBOOKS:
+    if data_type == ORDERBOOK:
         plt.figure(figsize=(20, 6))
     else:
         plt.figure(figsize=(6,4))
@@ -35,18 +35,18 @@ def plot_pca_variance(data_type: str, exchange: str, explained_variance: np.ndar
     for i, txt in enumerate(cumulative_variance):
         plt.text(components[i], cumulative_variance[i], f'{txt:.3f}', fontsize=8, ha='right', va='bottom')
 
-    plt.title(f'Variance Explained by PCA Components for {exchange} {data_type}')
-    plt.xlabel('Principal Component')
+    plt.title(f'Variance Explained by feature for {exchange} {data_type}')
+    plt.xlabel('Feature')
     plt.ylabel('Variance Explained')
     plt.xticks(components)
     plt.legend(loc='center right')
     plt.tight_layout()
-    plt.savefig(os.path.join(FIGURE_PATH, f'{exchange}_{data_type}_pca_variance.png'))
+    plt.savefig(os.path.join(FIGURE_PATH, f'{exchange}_{data_type}_feature_variance.png'))
     plt.show()
 
 # Plot the PCA loadings
 def plot_loadings(data_type: str, exchange: str, loadings: pd.DataFrame):
-    if data_type == ORDERBOOKS:
+    if data_type == ORDERBOOK:
         plt.figure(figsize=(15, 15))
     else:
         plt.figure(figsize=(13, 5))
@@ -64,9 +64,9 @@ def plot_loadings_heatmap(data_type: str, exchange: str, loadings: pd.DataFrame,
     # Adjust the figure size dynamically based on the number of features
     height = max(6, min(loadings.shape[0] * 0.5, 20))  
     width = max(10, min(loadings.shape[1] * 1.2, 20))
-    annot = False if data_type == ORDERBOOKS else True
+    annot = False if data_type == ORDERBOOK else True
     
-    if data_type == ORDERBOOKS:
+    if data_type == ORDERBOOK:
         plt.figure(figsize=(width, height))
         ax = sns.heatmap(loadings, cmap='coolwarm', annot=annot)
     else:
@@ -117,46 +117,6 @@ def plot_elbow_curve(data_type: str, exchange: str, combined_scores, elbow_index
     plt.legend()
     plt.grid(True)
     plt.savefig(os.path.join(FIGURE_PATH, f'{exchange}_{data_type}_combined_scores_elbow_plot.png'))
-    plt.show()
-
-def plot_tree_learning_curves(exchange: str, data_type: str, depths: int, train_scores: list, test_scores: list, folder: str):
-    """Plot the learning curves for the training and test sets."""
-    path = os.path.join(FIGURE_PATH, folder)
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-    plt.figure(figsize=(10, 6))
-    plt.plot(depths, train_scores, label='Train Score', marker='o')
-    plt.plot(depths, test_scores, label='Test Score', marker='o')
-    plt.xlabel('Tree Depth')
-    plt.ylabel('Accuracy')
-    plt.title(f'Learning Curves for {exchange} {data_type}')
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(os.path.join(path, f'{exchange}_{data_type}_learning_curves.png'))
-    plt.show()
-
-def plot_learning_curve(exchange: str, data_type: str, folder: str, estimator, X, y, train_sizes=np.linspace(0.1, 1.0, 5), cv=3, n_jobs=-1):
-    path = os.path.join(FIGURE_PATH, folder)
-    if not os.path.exists(path):
-        os.makedirs(path)
-    train_sizes, train_scores, test_scores = learning_curve(estimator, X, y, 
-                                                            train_sizes=train_sizes, 
-                                                            cv=cv, 
-                                                            scoring='accuracy', 
-                                                            n_jobs=n_jobs, 
-                                                            random_state=42)
-    train_scores_mean = np.mean(train_scores, axis=1)
-    test_scores_mean = np.mean(test_scores, axis=1)
-
-    plt.figure(figsize=(10, 7))
-    plt.plot(train_sizes, train_scores_mean, label='Training score')
-    plt.plot(train_sizes, test_scores_mean, label='Cross-validation score')
-    plt.xlabel('Training Set Size')
-    plt.ylabel('Accuracy Score')
-    plt.title(f'{exchange}-{data_type} Learning Curve')
-    plt.legend()
-    plt.savefig(os.path.join(path, f'{exchange}_{data_type}_learning_curves.png'))
     plt.show()
 
 def plot_confusion_matrix(exchange: str, data_type: str, folder: str, cm, labels):
