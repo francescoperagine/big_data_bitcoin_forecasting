@@ -21,7 +21,8 @@ dependencies = [
     "auto_mix_prep",
     "pyarrow",
     "pipreqs",
-    "setuptools"
+    "setuptools",
+    "imblearn"
 ]
 
 [tool.setuptools.packages]
