@@ -10,17 +10,18 @@ requires-python = ">= 3.9"
 authors = [{ name = "Francesco Peragine" }]
 license = { text = "MIT" }
 dependencies = [
-    "click==8.1.7",
-    "matplotlib==3.8.4",
-    "numpy==1.26.4",
-    "pandas==2.2.2",
-    "python-dotenv==1.0.1",
+    "click",
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "python-dotenv",
     "scikit-learn",
-    "seaborn==0.13.2",
-    "technical_analysis==0.0.4",
-    "auto_mix_prep==0.2.0",
-    "pyarrow==16.1.0",
-    "pipreqs==0.5.0"
+    "seaborn",
+    "technical_analysis",
+    "auto_mix_prep",
+    "pyarrow",
+    "pipreqs",
+    "setuptools"
 ]
 
 [tool.setuptools.packages]

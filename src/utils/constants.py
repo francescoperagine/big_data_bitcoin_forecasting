@@ -1,18 +1,23 @@
 import os
 
+
+
 # Constants
 
 CANDLES = 'candles'
 ORDERBOOK = 'orderbook'
+UNIFIED = 'unified'
 
 # Exchanges
 
 BINANCE = 'BINANCE'
 HUOBI = 'HUOBI'
 OKX = 'OKX'
+ALL = 'ALL'
 
 LAGS = [1, 2, 3, 4]
 
+DATA_TYPES = [CANDLES, ORDERBOOK, UNIFIED]
 EXCHANGES = [BINANCE, HUOBI, OKX]
 
 TEST_SIZE = 0.2
@@ -20,7 +25,6 @@ RANDOM_STATE = 42
 
 CORRELATION_THRESHOLD = 0.9
 PCA_VARIANCE_THRESHOLD = 0.95
-INNER_CV_FOLDS = 3
 
 # Paths
 
