@@ -22,7 +22,12 @@ dependencies = [
     "pyarrow",
     "pipreqs",
     "setuptools",
-    "imblearn"
+    "imblearn",
+    "xgboost",
+    "lightgbm",
+    "catboost",
+
+
 ]
 
 [tool.setuptools.packages]

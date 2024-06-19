@@ -7,14 +7,6 @@ from src.visualization.visualize import plot_correlation_matrix
 from scipy.stats import ttest_ind
 from sklearn.utils import resample
 
-def get_features(df: pd.DataFrame) -> list:
-    """Return a list of features in the DataFrame."""	
-    return [x for x in df.columns]
-
-def get_null_values(df: pd.DataFrame) -> pd.DataFrame:
-    """Return the rows with null values."""	
-    return df[df['null'] == True]
-
 def add_time_features(df):
     updated_df = df.copy()
     updated_df['hour'] = updated_df['origin_time'].dt.hour
@@ -38,7 +30,7 @@ def add_lag_features(df, lags):
 
 def get_dataframe_null_summary(df: pd.DataFrame, name: str) -> dict:
     """Return a summary of the DataFrame including the total entries, null entries, null percentage, and zero count."""	
-    null_df = get_null_values(df)
+    null_df = df[df['null'] == True]
     total_entries = len(df)
     null_entries = len(null_df)
     null_percentage = null_entries / total_entries if total_entries > 0 else 0
@@ -102,15 +94,6 @@ def compute_loadings(pca: PCA, df: pd.DataFrame) -> pd.DataFrame:
 
 def merge_datasets(df1, df2, on='origin_time'):
     return pd.merge(df1, df2, on=on, how='inner')
-
-def add_orderbook_value_feature(df, orders=20):
-    """Add price * size product features to orderbook DataFrame."""
-    new_df = df.copy()
-    for i in range(orders):
-        new_df.insert(new_df.columns.get_loc(f'bid_{i}_size') + 1, f'bid_{i}_value', 0) 
-        new_df[f'bid_{i}_value'] = new_df[f'bid_{i}_price'] * new_df[f'bid_{i}_size']
-        new_df[f'ask_{i}_value'] = new_df[f'ask_{i}_price'] * new_df[f'ask_{i}_size']
-    return new_df
 
 def perform_ttest(df, metric):
     results_list = []
