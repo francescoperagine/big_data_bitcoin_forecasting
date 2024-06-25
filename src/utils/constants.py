@@ -24,7 +24,7 @@ TEST_SIZE = 0.2
 RANDOM_STATE = 42
 
 CORRELATION_THRESHOLD = 0.9
-PCA_VARIANCE_THRESHOLD = 0.95
+PCA_VARIANCE_THRESHOLD = 0.9
 
 # Paths
 
@@ -40,4 +40,5 @@ GROUND_TRUTH_PATH = os.path.join(EXTERNAL_DATA_PATH, 'ground_truth', 'BTC.parque
 GROUND_TRUTH_SUMMARY = os.path.join(EXTERNAL_DATA_PATH, 'ground_truth', 'ground_truth_summary.parquet')
 GROUND_TRUTH_PROCESSED_PATH = os.path.join(PROCESSED_DATA_PATH, 'ground_truth.pkl')
 
-FIGURE_PATH = os.path.join(ROOT_DIR, 'reports', 'figures')
+REPORTS_PATH = os.path.join(ROOT_DIR, 'reports')
+FIGURE_PATH = os.path.join(REPORTS_PATH, 'figures')

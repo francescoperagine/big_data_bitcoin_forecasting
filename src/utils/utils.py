@@ -6,6 +6,34 @@ import os
 from src.visualization.visualize import plot_correlation_matrix
 from scipy.stats import ttest_ind
 from sklearn.utils import resample
+import pickle
+from src.utils.constants import *
+
+def add_label_feature(df, open_col='open', close_col='close', pos_threshold=0.000343, neg_threshold=-0.00034):
+    """
+    Add a 'label' feature to the dataset based on the difference between 'open' and 'close' features.
+    
+    Parameters:
+    df (pd.DataFrame): The input DataFrame.
+    open_col (str): The name of the column representing the opening price.
+    close_col (str): The name of the column representing the closing price.
+    pos_threshold (float): The positive threshold.
+    neg_threshold (float): The negative threshold.
+    
+    Returns:
+    pd.DataFrame: The DataFrame with the added 'label' feature.
+    """
+    def compute_label(row):
+        diff = row[close_col] - row[open_col]
+        if diff > pos_threshold:
+            return 'positive'
+        elif diff < neg_threshold:
+            return 'negative'
+        else:
+            return 'neutral'
+    
+    df['label'] = df.apply(compute_label, axis=1)
+    return df
 
 def add_time_features(df):
     updated_df = df.copy()
@@ -54,7 +82,7 @@ def evaluate_correlation(df, exchange, data_type, threshold=0.9):
     highly_correlated_pairs = highly_correlated_pairs[(highly_correlated_pairs != 1) & (highly_correlated_pairs > threshold)]
 
     print("Highly correlated pairs:")
-    (highly_correlated_pairs)
+    print(highly_correlated_pairs)
 
 def standard_scale(df: pd.DataFrame) -> pd.DataFrame:
     """Scale the DataFrame using StandardScaler."""	
@@ -171,3 +199,10 @@ def compute_comparison(df, data_type):
             })
     
     return pd.DataFrame(results_list)
+
+def save_model(btcf, name, exchange, data_type):
+        # Save the best model and results
+        model_path = os.path.join(MODELS_DATA_PATH, f"{name}_{exchange}_{data_type}.pkl")
+
+        with open(model_path, "wb") as f:
+                pickle.dump(btcf, open(model_path, "wb"))

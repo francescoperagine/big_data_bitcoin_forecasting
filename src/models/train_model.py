@@ -1,15 +1,20 @@
+import sys
+sys.dont_write_bytecode = True
 from imblearn.combine import SMOTEENN
 from imblearn.pipeline import Pipeline as ImbPipeline
 from sklearn.decomposition import PCA
 from sklearn.experimental import enable_halving_search_cv
 from sklearn.feature_selection import RFE, SelectFromModel
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, precision_recall_fscore_support
-from sklearn.model_selection import train_test_split, TimeSeriesSplit, LearningCurveDisplay, ValidationCurveDisplay, HalvingGridSearchCV, cross_val_score
+from sklearn.metrics import balanced_accuracy_score, classification_report, confusion_matrix, precision_recall_fscore_support
+from sklearn.model_selection import train_test_split, TimeSeriesSplit, LearningCurveDisplay, ValidationCurveDisplay, HalvingGridSearchCV
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from src.utils.constants import *
 from src.visualization.visualize import *
 
 class BTCForecasting:
+    """
+    A class to train and evaluate a model for Bitcoin price forecasting.
+    """
 
     def __init__(
             self,
@@ -20,7 +25,9 @@ class BTCForecasting:
             n_splits: int = 5,
             pca_variance_threshold: float = 0.95,
             smoteenn: bool = False,
-            rfe: bool = False
+            feature_selection: str =  None,
+            n_jobs: int = -1
+
         ) -> None:
         self.test_size = test_size
         self.random_state = random_state
@@ -31,10 +38,13 @@ class BTCForecasting:
         self.X_test = None
         self.y_train = None
         self.y_test = None
+        self.y_pred = None
         self.X_test_scaled = None
         self.X_test_pca = None
         self.n_splits = n_splits
-        self.tscv = None
+
+        # Split the data for cross-validation respecting the temporal order
+        self.tscv = TimeSeriesSplit(n_splits=self.n_splits)
         self.model = None
         self.search = None
         self.results = None
@@ -46,9 +56,16 @@ class BTCForecasting:
         # SMOTEENN resampling
         self.smoteenn = smoteenn
 
+        self.feature_importances = None
+
+        self.feature_selection = feature_selection
         # Recursive Feature Elimination (RFE) feature selection
-        self.rfe = rfe
-        self.n_features_to_select = None
+        self.rfe = True if feature_selection == 'rfe' else False
+
+        # SelectFromModel feature selection
+        self.select_from_model = True if feature_selection == 'sfm' else False
+
+        self.n_jobs = n_jobs
 
         # Label encoder
         self.le = LabelEncoder()
@@ -56,30 +73,43 @@ class BTCForecasting:
         self._set_data(data)
         
     def _set_data(self, data) -> None:
+        """
+        Merges the data with the ground truth labels and splits the data into training and testing sets
+        """
         merged_data =  pd.merge(data, self.ground_truth, on='origin_time', how='inner')
         self.X = merged_data.drop(columns=['origin_time', 'label'])
         self.y = self.le.fit_transform(merged_data['label'])
 
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=self.test_size, random_state=self.random_state, shuffle=False)
-    
-    def train_rfc_grid(self, classifier, params, features_to_select = None, factor=3, aggressive_elimination = False, verbose = 1) -> dict:
-        
 
-        self.classifier = classifier
-
-        # Split the data for cross-validation respecting the temporal order
-        self.tscv = TimeSeriesSplit(n_splits=self.n_splits)
-
+    def _set_pipeline(self, classifier) -> ImbPipeline:
+        """
+        Sets the pipeline for the model, including the SMOTEENN resampling, feature selection, scaling, PCA and classifier steps
+        """
         steps = []
         if self.smoteenn:
             steps.append(('smoteenn', SMOTEENN()))
-        if self.rfe:
-            self.n_features_to_select = features_to_select if features_to_select is not None else len(self.X.columns) // 2
-            rfe_step = RFE(estimator=self.classifier, n_features_to_select=self.n_features_to_select, step=1)
-            steps.append(('rfe', rfe_step))
-        steps.extend([('scaler', self.scaler), ('pca', self.pca), ('classifier', self.classifier)])
 
-        self.pipeline = ImbPipeline(steps=steps)
+        if self.rfe:
+            rfe_step = RFE(estimator=classifier, n_features_to_select=None, step=3)
+            steps.append(('rfe', rfe_step))
+        elif self.select_from_model:
+            sfm_step = SelectFromModel(estimator=classifier, threshold='1.25*mean', prefit=False, importance_getter = 'auto')
+            steps.append(('sfm', sfm_step))
+
+        steps.extend([
+            ('scaler', self.scaler),
+            ('pca', self.pca),
+            ('classifier', classifier)
+        ])
+        return ImbPipeline(steps=steps)
+    
+    def train(self, classifier, params, factor=3, aggressive_elimination = False, verbose=3) -> dict:
+        """
+        Trains the model using the HalvingGridSearchCV algorithm and stores the best model in the model attribute        
+        """
+        
+        self.pipeline = self._set_pipeline(classifier)
 
         self.search = HalvingGridSearchCV(
             estimator=self.pipeline,
@@ -87,11 +117,12 @@ class BTCForecasting:
             aggressive_elimination=aggressive_elimination,
             factor=factor,
             cv=self.tscv,
-            scoring='accuracy',
-            n_jobs=-1,
+            scoring="f1_weighted",
+            n_jobs=self.n_jobs,
             verbose=verbose,
             return_train_score=True,
-            refit=True
+            refit=True,
+            error_score='raise'
         )
 
         self.search.fit(self.X_train, self.y_train)
@@ -102,166 +133,146 @@ class BTCForecasting:
             'best_score': self.search.best_score_,
             'cv_results': self.search.cv_results_
         }
+        self._evaluate_feature_importances()
+       
+    def evaluate(self):
+            """
+            Evaluates the model on the test set and stores the results in model.results
+            """
+            self.y_pred = self.model.predict(self.X_test)
 
-        if self.rfe:
-            rfe_step = self.model.named_steps['rfe']
-            selected_features_mask = rfe_step.support_
-            feature_ranking = rfe_step.ranking_
-            selected_feature_names = self.X.columns[selected_features_mask]
+            accuracy = balanced_accuracy_score(self.y_test, self.y_pred)
+            precision_macro, recall_macro, fscore_macro, _ = precision_recall_fscore_support(self.y_test, self.y_pred, average='macro')
+            precision_weighted, recall_weighted, fscore_weighted, _ = precision_recall_fscore_support(self.y_test, self.y_pred, average='weighted')
 
-            feature_importances = self.model.named_steps['classifier'].feature_importances_
-            feature_importance_df = pd.DataFrame({'Feature': selected_feature_names, 'Importance': feature_importances})
-            feature_importance_df = feature_importance_df.sort_values(by='Importance', ascending=False)
-
-            self.results.update({
-                'rfe': {
-                    'selected_features': selected_feature_names,
-                    'feature_ranking': feature_ranking,
-                    'feature_importance': feature_importance_df,
-                    'selected_features_mask': selected_features_mask
-                }
-            })
-
-            print("Selected features mask:", selected_features_mask)
-            print("Selected features:", selected_feature_names)
-
-            # Refit the model on the selected features
-            # X_train_selected = self.X_train.iloc[:, selected_features_mask]
-            # self.model.named_steps['classifier'].fit(X_train_selected, self.y_train)
-
-
-    def train_model(self, classifier, classifier_params=None, features_to_select=None, verbose=1) -> dict:
-        self.classifier = classifier
-
-        self.tscv = TimeSeriesSplit(n_splits=self.n_splits)
-
-        steps = []
-        if self.smoteenn:
-            steps.append(('smoteenn', SMOTEENN()))
-        if self.rfe:
-            self.n_features_to_select = features_to_select if features_to_select is not None else len(self.X.columns)
-            rfe_step = RFE(estimator=self.classifier, n_features_to_select=self.n_features_to_select, step=1)
-            steps.append(('rfe', rfe_step))
-        steps.extend([('scaler', self.scaler), ('pca', self.pca), ('classifier', self.classifier)])
-
-        self.pipeline = ImbPipeline(steps=steps)
-
-        # Set classifier parameters if provided
-        if classifier_params:
-            self.pipeline.set_params(**classifier_params)
-
-        # Use cross_val_score to perform cross-validation
-        scores = cross_val_score(self.pipeline, self.X_train, self.y_train, cv=self.tscv, scoring='accuracy', n_jobs=-1)
-        
-        self.pipeline.fit(self.X_train, self.y_train)
-        self.model = self.pipeline
-
-        self.results = {
-            'cv_scores': scores,
-            'mean_cv_score': scores.mean(),
-            'std_cv_score': scores.std()
-        }
-
-        if self.rfe:
-            rfe_step = self.model.named_steps['rfe']
-            selected_features_mask = rfe_step.support_
-            feature_ranking = rfe_step.ranking_
-            selected_feature_names = self.X.columns[selected_features_mask]
-
-            feature_importances = self.model.named_steps['classifier'].feature_importances_
-            feature_importance_df = pd.DataFrame({'Feature': selected_feature_names, 'Importance': feature_importances})
-            feature_importance_df = feature_importance_df.sort_values(by='Importance', ascending=False)
-
-            self.results.update({
-                'rfe': {
-                    'selected_features': selected_feature_names,
-                    'feature_ranking': feature_ranking,
-                    'feature_importance': feature_importance_df,
-                    'selected_features_mask': selected_features_mask
-                }
-            })
-
-            print("Selected features mask:", selected_features_mask)
-            print("Selected features:", selected_feature_names)
-
-    def evaluate_model(self):
-            # self.X_test_scaled = self.scaler.transform(self.X_test) 
-            # self.X_test_pca = self.pca.transform(self.X_test_scaled)
-
-            # if self.rfe:
-            #     selected_features_mask = self.results['rfe']['selected_features_mask']
-            #     X_test_selected = self.X_test.iloc[:, selected_features_mask]
-            #     y_pred = self.model.named_steps['classifier'].predict(X_test_selected)
-            # else:
-            y_pred = self.model.predict(self.X_test)
-
-            accuracy = accuracy_score(self.y_test, y_pred)
-            precision, recall, fscore, _ = precision_recall_fscore_support(btcf.y_test, y_pred, average='macro')
-            report = classification_report(self.y_test, y_pred, target_names=self.le.classes_)
-            conf_matrix = confusion_matrix(self.y_test, y_pred)
+            report = classification_report(self.y_test, self.y_pred, target_names=self.le.classes_)
+            conf_matrix = confusion_matrix(self.y_test, self.y_pred)
             
             self.results.update({
-                'accuracy': accuracy,
-                'precision': precision,
-                'recall': recall,
-                'fscore': fscore,
-                'report': report,
+                'accuracy (balanced)': accuracy,
+                'precision (macro)': precision_macro,
+                'recall (macro)': recall_macro,
+                'fscore (macro)': fscore_macro,
+                'precision (weighted)': precision_weighted,
+                'recall (weighted)': recall_weighted,
+                'fscore (weighted)': fscore_weighted,
+                'classification_report': report,
                 'conf_matrix': conf_matrix,
             })
 
-    def plot_learning_curves(self, filename='learning_curve.png'):
-        plt.clf()
-        X_train_selected = self.X_train.iloc[:, self.results['rfe']['selected_features_mask']] if self.rfe else self.X_train
-        LearningCurveDisplay.from_estimator(
-            self.model.named_steps['classifier'],
-            X_train_selected,
-            self.y_train,
-            cv=self.tscv,
-            scoring='accuracy',
-            n_jobs=-1
+    def _evaluate_feature_importances(self):
+        """
+        Extracts the feature importances from the feature selection step, stores them in model.results and returns them as a DataFrame
+        """
+        if self.feature_selection is not None:
+            fs_step = self.model.named_steps[self.feature_selection]
+            selected_features_mask = fs_step.get_support()
+            feature_importances_from_step = fs_step.estimator_.feature_importances_
+            selected_feature_names = self.X.columns[selected_features_mask]
+            selected_importances = feature_importances_from_step[selected_features_mask]
+            self.results.update({
+                'feature_selection': {
+                    'Feature': selected_feature_names,
+                    'Importance': selected_importances,
+                }
+            })
+            feature_importance_df = pd.DataFrame(self.results['feature_selection'])
+            self.feature_importances = feature_importance_df.sort_values(by='Importance', ascending=False)
+
+
+    def plot_learn_cm_feat(self,filename):
+        fig, axes = plt.subplots(1, 3, figsize=(24, 6))
+        
+        # Extract train and test scores from HalvingGridSearchCV results
+        train_scores_mean = np.array(self.results['cv_results']['mean_train_score'])
+        train_scores_std = np.array(self.results['cv_results']['std_train_score'])
+        test_scores_mean = np.array(self.results['cv_results']['mean_test_score'])
+        test_scores_std = np.array(self.results['cv_results']['std_test_score'])
+
+        step_size = max(1, len(self.X_train) // 40)
+        train_sizes = np.linspace(1, len(self.X_train), len(train_scores_mean)).astype(int)
+
+        # Plot Learning Curves
+        display = LearningCurveDisplay(
+            train_sizes=train_sizes,
+            train_scores=train_scores_mean - train_scores_std,
+            test_scores=test_scores_mean - test_scores_std,
+            score_name='F1 Score'
         )
-        plt.title('Learning Curves')
-        plt.xlabel('Training examples')
-        plt.ylabel('Score')
-        plt.legend(loc="best")
-        plt.grid()
+
+        axes[0].fill_between(train_sizes, train_scores_mean - train_scores_std,
+                         train_scores_mean + train_scores_std, alpha=0.1, color="r")
+        axes[0].fill_between(train_sizes, test_scores_mean - test_scores_std,
+                            test_scores_mean + test_scores_std, alpha=0.1, color="g")
+        axes[0].set_title('Learning Curves')
+        axes[0].set_xlabel('Training examples')
+        axes[0].set_ylabel('Score')
+        axes[0].legend(loc="best")
+        axes[0].grid()
+
+        disp = ConfusionMatrixDisplay(confusion_matrix=self.results['conf_matrix'], display_labels=list(self.le.classes_))
+        disp.plot(ax=axes[1])
+        axes[1].set_title('Confusion Matrix')
+
+        # Plot Feature Importance
+        if self.feature_selection is not None:
+
+            axes[2].barh(self.feature_importances['Feature'], self.feature_importances['Importance'], color='skyblue')
+            axes[2].set_xlabel('Feature Importance')
+            axes[2].set_ylabel('Features')
+            axes[2].set_title('Feature Importance')
+            axes[2].invert_yaxis()
+            axes[2].grid()
+
         plt.tight_layout()
         plt.savefig(os.path.join(FIGURE_PATH, filename))
         plt.show()
 
-    def plot_validation_curves(self, param_name, param_range, filename='validation_curve.png'):
-        plt.clf()
-        X_train_selected = self.X_train.iloc[:, self.results['rfe']['selected_features_mask']] if self.rfe else self.X_train
-        ValidationCurveDisplay.from_estimator(
-            self.model.named_steps['classifier'],
-            X_train_selected,
-            self.y_train,
-            param_name=param_name,
-            param_range=param_range,
-            cv=self.tscv,
-            scoring='accuracy',
-            n_jobs=-1
-        )
-        plt.title(f'Validation Curve with {param_name}')
-        plt.xlabel(param_name)
-        plt.ylabel('Score')
-        plt.legend(loc="best")
-        plt.grid()
+    def plot_bias_variance_tradeoff(self, filename='bias_variance_tradeoff.png'):
+        # Convert cv_results to a DataFrame
+        results_df = pd.DataFrame(self.results['cv_results'])
+
+        # Extract the parameters used in cross-validation
+        params = [key for key in results_df.columns if key.startswith('param_')]
+        
+        # Determine the number of rows needed for the grid
+        n_params = len(params)
+        n_cols = 3
+        n_rows = (n_params + n_cols - 1) // n_cols  # Calculate number of rows needed
+        
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 5 * n_rows))
+        axes = axes.flatten()  # Flatten the axes array for easy iteration
+
+        for i, param in enumerate(params):
+            # Group by the specific parameter and compute mean and std for train and test scores
+            grouped_results = results_df.groupby(param).agg(
+                mean_train_score=('mean_train_score', 'mean'),
+                std_train_score=('std_train_score', 'mean'),
+                mean_test_score=('mean_test_score', 'mean'),
+                std_test_score=('std_test_score', 'mean')
+            ).reset_index()
+
+            param_values = grouped_results[param]
+            mean_train_scores = grouped_results['mean_train_score']
+            mean_test_scores = grouped_results['mean_test_score']
+            std_train_scores = grouped_results['std_train_score']
+            std_test_scores = grouped_results['std_test_score']
+
+            # Plotting the train and validation scores with error bars
+            ax = axes[i]
+            ax.errorbar(param_values, mean_train_scores, yerr=std_train_scores, label='Mean Train Score', marker='o', capsize=5)
+            ax.errorbar(param_values, mean_test_scores, yerr=std_test_scores, label='Mean Test Score', marker='o', capsize=5)
+            ax.set_xlabel(param)
+            ax.set_ylabel('F1 Score (Weighted)')
+            ax.set_title(f'Bias-Variance Tradeoff: {param}')
+            ax.legend()
+            ax.grid(True)
+
+        # Hide any remaining empty subplots
+        for j in range(i + 1, len(axes)):
+            axes[j].set_visible(False)
+
         plt.tight_layout()
         plt.savefig(os.path.join(FIGURE_PATH, filename))
         plt.show()
 
-    def plot_feature_importance(self, filename):
-        feature_importance_df = self.results.get('rfe', {}).get('feature_importance')
-        if feature_importance_df is not None:
-            plt.clf()
-            plt.barh(feature_importance_df['Feature'], feature_importance_df['Importance'], color='skyblue')
-            plt.xlabel('Feature Importance')
-            plt.ylabel('Features')
-            plt.title('Feature Importance')
-            plt.gca().invert_yaxis()
-            plt.tight_layout()
-            plt.savefig(os.path.join(FIGURE_PATH, filename))
-            plt.show()
-        else:
-            print("Feature importance data is not available.")
