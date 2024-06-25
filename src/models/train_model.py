@@ -149,13 +149,13 @@ class BTCForecasting:
             conf_matrix = confusion_matrix(self.y_test, self.y_pred)
             
             self.results.update({
-                'accuracy (balanced)': accuracy,
-                'precision (macro)': precision_macro,
-                'recall (macro)': recall_macro,
-                'fscore (macro)': fscore_macro,
-                'precision (weighted)': precision_weighted,
-                'recall (weighted)': recall_weighted,
-                'fscore (weighted)': fscore_weighted,
+                'accuracy_balanced': accuracy,
+                'precision_macro': precision_macro,
+                'recall_macro': recall_macro,
+                'fscore_macro': fscore_macro,
+                'precision_weighted': precision_weighted,
+                'recall_weighted': recall_weighted,
+                'fscore_weighted': fscore_weighted,
                 'classification_report': report,
                 'conf_matrix': conf_matrix,
             })
@@ -189,16 +189,16 @@ class BTCForecasting:
         test_scores_mean = np.array(self.results['cv_results']['mean_test_score'])
         test_scores_std = np.array(self.results['cv_results']['std_test_score'])
 
-        step_size = max(1, len(self.X_train) // 40)
+        # step_size = max(1, len(self.X_train) // 40)
         train_sizes = np.linspace(1, len(self.X_train), len(train_scores_mean)).astype(int)
 
         # Plot Learning Curves
-        display = LearningCurveDisplay(
-            train_sizes=train_sizes,
-            train_scores=train_scores_mean - train_scores_std,
-            test_scores=test_scores_mean - test_scores_std,
-            score_name='F1 Score'
-        )
+        # display = LearningCurveDisplay(
+        #     train_sizes=train_sizes,
+        #     train_scores=train_scores_mean - train_scores_std,
+        #     test_scores=test_scores_mean - test_scores_std,
+        #     score_name='F1 Score'
+        # )
 
         axes[0].fill_between(train_sizes, train_scores_mean - train_scores_std,
                          train_scores_mean + train_scores_std, alpha=0.1, color="r")
