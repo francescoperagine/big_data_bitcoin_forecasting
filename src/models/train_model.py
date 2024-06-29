@@ -183,31 +183,32 @@ class BTCForecasting:
     def plot_learn_cm_feat(self,filename):
         fig, axes = plt.subplots(1, 3, figsize=(24, 6))
         
+
         # Extract train and test scores from HalvingGridSearchCV results
         train_scores_mean = np.array(self.results['cv_results']['mean_train_score'])
         train_scores_std = np.array(self.results['cv_results']['std_train_score'])
         test_scores_mean = np.array(self.results['cv_results']['mean_test_score'])
         test_scores_std = np.array(self.results['cv_results']['std_test_score'])
 
-        # step_size = max(1, len(self.X_train) // 40)
-        train_sizes = np.linspace(1, len(self.X_train), len(train_scores_mean)).astype(int)
+        # Reduce the number of points for plotting
+        num_points = 30
+        indices = np.linspace(0, len(train_scores_mean) - 1, num_points).astype(int)
+        
+        train_scores_mean = train_scores_mean[indices]
+        train_scores_std = train_scores_std[indices]
+        test_scores_mean = test_scores_mean[indices]
+        test_scores_std = test_scores_std[indices]
+        train_sizes = np.linspace(0.1, 1.0, num_points)
 
-        # Plot Learning Curves
-        # display = LearningCurveDisplay(
-        #     train_sizes=train_sizes,
-        #     train_scores=train_scores_mean - train_scores_std,
-        #     test_scores=test_scores_mean - test_scores_std,
-        #     score_name='F1 Score'
-        # )
+        axes[0].plot(train_sizes, train_scores_mean, color='orange', marker='o', markersize=1, label='Train')
+        axes[0].fill_between(train_sizes, train_scores_mean + train_scores_std, train_scores_mean - train_scores_std, alpha=0.05, color='orange')
+        axes[0].plot(train_sizes, test_scores_mean, color='blue', marker='+', markersize=1, label='Test')
+        axes[0].fill_between(train_sizes, test_scores_mean + test_scores_std, test_scores_mean - test_scores_std, alpha=0.05, color='blue')
 
-        axes[0].fill_between(train_sizes, train_scores_mean - train_scores_std,
-                         train_scores_mean + train_scores_std, alpha=0.1, color="r")
-        axes[0].fill_between(train_sizes, test_scores_mean - test_scores_std,
-                            test_scores_mean + test_scores_std, alpha=0.1, color="g")
         axes[0].set_title('Learning Curves')
         axes[0].set_xlabel('Training examples')
-        axes[0].set_ylabel('Score')
-        axes[0].legend(loc="best")
+        axes[0].set_ylabel('F1-score (weighted)')
+        axes[0].legend(['Train', 'Test'], loc='best')
         axes[0].grid()
 
         disp = ConfusionMatrixDisplay(confusion_matrix=self.results['conf_matrix'], display_labels=list(self.le.classes_))
@@ -237,7 +238,7 @@ class BTCForecasting:
         
         # Determine the number of rows needed for the grid
         n_params = len(params)
-        n_cols = 3
+        n_cols = 2
         n_rows = (n_params + n_cols - 1) // n_cols  # Calculate number of rows needed
         
         fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 5 * n_rows))
