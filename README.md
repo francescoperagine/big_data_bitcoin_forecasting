@@ -1,55 +1,41 @@
-bitcoin_stock_market_forecasting
-==============================
-
 Big Data case study for CS - AI MsC @ UniBA
 
-Project Organization
-------------
+# Bitcoin Forecasting Project
 
-    ├── LICENSE
-    ├── Makefile           <- Makefile with commands like `make data` or `make train`
-    ├── README.md          <- The top-level README for developers using this project.
-    ├── data
-    │   ├── external       <- Data from third party sources.
-    │   ├── interim        <- Intermediate data that has been transformed.
-    │   ├── processed      <- The final, canonical data sets for modeling.
-    │   └── raw            <- The original, immutable data dump.
-    │
-    ├── docs               <- A default Sphinx project; see sphinx-doc.org for details
-    │
-    ├── models             <- Trained and serialized models, model predictions, or model summaries
-    │
-    ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-    │                         the creator's initials, and a short `-` delimited description, e.g.
-    │                         `1.0-jqp-initial-data-exploration`.
-    │
-    ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-    │
-    ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-    │   └── figures        <- Generated graphics and figures to be used in reporting
-    │
-    ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-    │                         generated with `pip freeze > requirements.txt`
-    │
-    ├── setup.py           <- makes project pip installable (pip install -e .) so src can be imported
-    ├── src                <- Source code for use in this project.
-    │   ├── __init__.py    <- Makes src a Python module
-    │   │
-    │   ├── data           <- Scripts to download or generate data
-    │   │   └── make_dataset.py
-    │   │
-    │   ├── features       <- Scripts to turn raw data into features for modeling
-    │   │   └── build_features.py
-    │   │
-    │   ├── models         <- Scripts to train models and then use trained models to make
-    │   │   │                 predictions
-    │   │   ├── predict_model.py
-    │   │   └── train_model.py
-    │   │
-    │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
-    │       └── visualize.py
-    │
-    └── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
+Welcome to the Bitcoin Forecasting Project.
+
+This project analyzes BTC market data from BINANCE, HUOBI, and OKX exchanges to predict whether the next "close" value will be higher, similar, or lower than the previous one. We employ various machine learning techniques to process and interpret minute-by-minute candles and orderbook data.
+
+## What's Inside?
+
+- **Data Prep:** Cleaned and integrated candles and orderbook data with detailed feature engineering.
+- **Modeling:** Utilized RandomForestClassifier with a comprehensive pipeline, including scaling, PCA, and SMOTEENN for handling imbalanced classes.
+- **Evaluation:** Detailed evaluation using learning curves, confusion matrices, and feature importance, focusing on balancing bias and variance.
+
+## Highlights
+
+- **Unified Datasets:** Integrating candles and orderbook data provided enhanced predictions for HUOBI and OKX.
+- **Comparative Analysis:** Employed bootstrap methods and t-tests to compare model performance across exchanges.
+- **Future Work:** Potential to explore advanced models, real-time data processing, and dynamic trading strategies.
+
+## Getting Started
+
+This project uses a cookiecutter for data science template. To install the project, use the following command:
+
+```bash
+pip install -e .
+```
+
+### Data Requirements
+
+Please note that this project requires data provided by the BINANCE, HUOBI, and OKX exchanges. However, the project is easily customizable to work with data from other sources.
+
+### Notebooks
+
+- **Data Preparation:** Execute the `data_preparation` notebook first to clean and integrate the data.
+- **Main Notebook:** After data preparation, execute the `main` notebook to train and evaluate the models.
+
+Feel free to explore the code and contribute.
 
 
 --------
