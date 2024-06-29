@@ -74,15 +74,12 @@ def get_dataframe_null_summary(df: pd.DataFrame, name: str) -> dict:
         **zero_count.to_dict()  # Expand the zero_count Series into the dictionary
     }
 
-def evaluate_correlation(df, exchange, data_type, threshold=0.9):
-    scaled_no_origin_time = df.drop(columns=['origin_time'])
-    plot_correlation_matrix(data_type, exchange, scaled_no_origin_time.corr())
+def evaluate_correlation(df, threshold=0.9):
 
     highly_correlated_pairs = df.corr().unstack().sort_values(kind="quicksort", ascending=False)
     highly_correlated_pairs = highly_correlated_pairs[(highly_correlated_pairs != 1) & (highly_correlated_pairs > threshold)]
 
-    print("Highly correlated pairs:")
-    print(highly_correlated_pairs)
+    return highly_correlated_pairs
 
 def standard_scale(df: pd.DataFrame) -> pd.DataFrame:
     """Scale the DataFrame using StandardScaler."""	

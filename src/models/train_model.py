@@ -208,7 +208,7 @@ class BTCForecasting:
         axes[0].set_title('Learning Curves')
         axes[0].set_xlabel('Training examples')
         axes[0].set_ylabel('F1-score (weighted)')
-        axes[0].legend(['Train', 'Test'], loc='best')
+        axes[0].legend()
         axes[0].grid()
 
         disp = ConfusionMatrixDisplay(confusion_matrix=self.results['conf_matrix'], display_labels=list(self.le.classes_))
