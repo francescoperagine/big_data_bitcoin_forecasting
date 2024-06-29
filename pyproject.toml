@@ -23,11 +23,6 @@ dependencies = [
     "pipreqs",
     "setuptools",
     "imblearn",
-    "xgboost",
-    "lightgbm",
-    "catboost",
-
-
 ]
 
 [tool.setuptools.packages]
