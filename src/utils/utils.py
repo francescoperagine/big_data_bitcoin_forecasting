@@ -154,7 +154,7 @@ def perform_ttest(df, metric):
                     'data_type': data_type,
                     'exchange1': exchange1,
                     'exchange2': exchange2,
-                    'metric': metric,
+                    'metric': metric.replace('_score', ''),
                     't_stat': t_stat,
                     'p_value': p_value
                 })
