@@ -76,10 +76,24 @@ def get_dataframe_null_summary(df: pd.DataFrame, name: str) -> dict:
 
 def evaluate_correlation(df, threshold=0.9):
 
-    highly_correlated_pairs = df.corr().unstack().sort_values(kind="quicksort", ascending=False)
-    highly_correlated_pairs = highly_correlated_pairs[(highly_correlated_pairs != 1) & (highly_correlated_pairs > threshold)]
+    correlated_pairs = df.corr().unstack().sort_values(kind="quicksort", ascending=False)
+    correlated_pairs = correlated_pairs[(correlated_pairs != 1) & (correlated_pairs > threshold)]
+    correlated_pairs = correlated_pairs.reset_index()
+    correlated_pairs.columns = ['Feature1', 'Feature2', 'Correlation']
 
-    return highly_correlated_pairs
+    # Sort feature columns and remove permutations
+    features = correlated_pairs[['Feature1', 'Feature2']]
+    sorted_features = np.sort(features.values, axis=1)
+
+    # Create a DataFrame from sorted feature names
+    sorted_features_df = pd.DataFrame(sorted_features, columns=['Feature1', 'Feature2']).drop_duplicates()
+
+    # Merge sorted feature names back with their correlation values
+    sorted_pairs = pd.concat([sorted_features_df, correlated_pairs['Correlation']], axis=1)
+
+    # Remove duplicate permutations
+    return sorted_pairs[sorted_pairs['Feature1'] < sorted_pairs['Feature2']]
+
 
 def standard_scale(df: pd.DataFrame) -> pd.DataFrame:
     """Scale the DataFrame using StandardScaler."""	
