@@ -94,7 +94,7 @@ class BTCForecasting:
             rfe_step = RFE(estimator=classifier, n_features_to_select=None, step=3)
             steps.append(('rfe', rfe_step))
         elif self.select_from_model:
-            sfm_step = SelectFromModel(estimator=classifier, threshold='1.25*mean', prefit=False, importance_getter = 'auto')
+            sfm_step = SelectFromModel(estimator=classifier, threshold="median", prefit=False, importance_getter = 'auto')
             steps.append(('sfm', sfm_step))
 
         steps.extend([
@@ -168,27 +168,42 @@ class BTCForecasting:
         """
         classifier_step = self.model.named_steps['classifier']
         
-        # Check if the classifier has the feature_importances_ attribute
         if not hasattr(classifier_step, 'feature_importances_'):
             print("Classifier does not have feature_importances_ attribute. Skipping feature importance evaluation.")
             return None
         
         feature_importances = classifier_step.feature_importances_
         
-        # If PCA is used, the features are the PCA components
-        if 'pca' in self.model.named_steps:
-            pca_step = self.model.named_steps['pca']
-            n_components = pca_step.n_components_
-            component_names = [f'PC{i+1}' for i in range(n_components)]
-            feature_names = component_names
+         # Handle feature selection step
+        if self.rfe:
+            fs_step = self.model.named_steps['rfe']
+            selected_features_mask = fs_step.support_
+        elif self.select_from_model:
+            fs_step = self.model.named_steps['sfm']
+            selected_features_mask = fs_step.get_support()
         else:
-            feature_names = self.X.columns
+            selected_features_mask = np.ones(self.X.shape[1], dtype=bool)  # All features are selected if no feature selection step
+
+        # Assuming PCA is always used
+        pca_step = self.model.named_steps['pca']
+        n_components = pca_step.n_components_
+        component_names = [f'PC{i+1}' for i in range(n_components)]
+        
+        # Get the PCA components related to the selected features
+        pca_components = pca_step.components_
+        
+        # Map PCA component importances back to the selected original features
+        selected_pca_components = pca_components[:, selected_features_mask]
+        original_feature_importances = np.dot(feature_importances, selected_pca_components)
+        
+        # Get the original feature names for the selected features
+        selected_feature_names = self.X.columns[selected_features_mask]
         
         # Store and sort the feature importances
         self.results.update({
             'feature_importance': {
-                'Feature': feature_names,
-                'Importance': feature_importances,
+                'Feature': selected_feature_names,
+                'Importance': original_feature_importances,
             }
         })
         feature_importance_df = pd.DataFrame(self.results['feature_importance'])
