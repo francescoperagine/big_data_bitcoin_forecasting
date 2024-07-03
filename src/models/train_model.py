@@ -133,12 +133,13 @@ class BTCForecasting:
             'best_score': self.search.best_score_,
             'cv_results': self.search.cv_results_
         }
-        self._evaluate_feature_importances()
        
     def evaluate(self):
+            self._evaluate_feature_importances()    
             """
             Evaluates the model on the test set and stores the results in model.results
             """
+
             self.y_pred = self.model.predict(self.X_test)
 
             accuracy = balanced_accuracy_score(self.y_test, self.y_pred)
@@ -162,22 +163,40 @@ class BTCForecasting:
 
     def _evaluate_feature_importances(self):
         """
-        Extracts the feature importances from the feature selection step, stores them in model.results and returns them as a DataFrame
+        Extracts the feature importances from the classifier step, directly considers the PCA components as features,
+        stores them in model.results, and returns them as a DataFrame.
         """
-        if self.feature_selection is not None:
-            fs_step = self.model.named_steps[self.feature_selection]
-            selected_features_mask = fs_step.get_support()
-            feature_importances_from_step = fs_step.estimator_.feature_importances_
-            selected_feature_names = self.X.columns[selected_features_mask]
-            selected_importances = feature_importances_from_step[selected_features_mask]
-            self.results.update({
-                'feature_selection': {
-                    'Feature': selected_feature_names,
-                    'Importance': selected_importances,
-                }
-            })
-            feature_importance_df = pd.DataFrame(self.results['feature_selection'])
-            self.feature_importances = feature_importance_df.sort_values(by='Importance', ascending=False)
+        classifier_step = self.model.named_steps['classifier']
+        
+        # Check if the classifier has the feature_importances_ attribute
+        if not hasattr(classifier_step, 'feature_importances_'):
+            print("Classifier does not have feature_importances_ attribute. Skipping feature importance evaluation.")
+            return None
+        
+        feature_importances = classifier_step.feature_importances_
+        
+        # If PCA is used, the features are the PCA components
+        if 'pca' in self.model.named_steps:
+            pca_step = self.model.named_steps['pca']
+            n_components = pca_step.n_components_
+            component_names = [f'PC{i+1}' for i in range(n_components)]
+            feature_names = component_names
+        else:
+            feature_names = self.X.columns
+        
+        # Store and sort the feature importances
+        self.results.update({
+            'feature_importance': {
+                'Feature': feature_names,
+                'Importance': feature_importances,
+            }
+        })
+        feature_importance_df = pd.DataFrame(self.results['feature_importance'])
+        self.feature_importances = feature_importance_df.sort_values(by='Importance', ascending=False)
+        
+        return self.feature_importances
+
+
 
 
     def plot_learn_cm_feat(self,filename):
